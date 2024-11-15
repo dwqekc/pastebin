@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+  bin:
+    image: backend:latest
+    restart: always
+    command: bash -c "gunicorn bin.app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --log-level info"
+    volumes:
+      - ./backend:/backend
+    ports:
+      - "8000:8000"
+    environment:
+      - Redis_Url=${Redis_Url}
+
+  paste:
+    image: backend:latest
+    restart: always
+    command: bash -c "gunicorn paste.app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080 --log-level info"
+    volumes:
+      - ./backend:/backend
+    ports:
+      - "8080:8080"
+    environment:
+      - Redis_Url=${Redis_Url}
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-static/dist/:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+  redis:
+    image: redis/redis-stack-server
+    restart: always
+    ports:
+      - "${Broker_Port}:${Broker_Port}"
+    environment:
+      - REDIS_ARGS=--port ${Broker_Port} --requirepass ${Broker_Password} --appendonly yes
